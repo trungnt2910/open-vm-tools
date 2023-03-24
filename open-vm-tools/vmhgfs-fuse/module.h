@@ -71,7 +71,7 @@
 #include "session.h"
 #include "config.h"
 
-#if defined(__SOLARIS__) || defined(__APPLE__)
+#if defined(__SOLARIS__) || defined(__APPLE__) || defined(__HAIKU__)
 #define DT_UNKNOWN      0
 #define DT_FIFO         1
 #define DT_CHR          2
@@ -81,7 +81,9 @@
 #define DT_LNK          10
 #define DT_SOCK         12
 #define DT_WHT          14
+#ifndef __HAIKU__
 #define NAME_MAX        255    /* # chars in a file name */
+#endif
 #endif
 
 #include "hgfsEscape.h"

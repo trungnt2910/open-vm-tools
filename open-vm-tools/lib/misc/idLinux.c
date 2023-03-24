@@ -24,7 +24,9 @@
 
 #include <errno.h>
 #include <stdlib.h>
+#ifndef __HAIKU__
 #include <sys/syscall.h>
+#endif
 #include <string.h>
 #include <unistd.h>
 #ifdef __linux__
@@ -119,7 +121,7 @@ static AuthorizationRef IdAuthCreateWithFork(void);
 int
 Id_SetUid(uid_t euid)		// IN: new euid
 {
-#if defined(__FreeBSD__) || defined(sun)
+#if defined(__FreeBSD__) || defined(sun) || defined(__HAIKU__)
    return setuid(euid);
 #elif defined(__linux__) || defined __ANDROID__
    if (uid32) {
@@ -162,7 +164,7 @@ Id_SetGid(gid_t egid)		// IN: new egid
    Warning("XXXMACOS: implement %s\n", __func__);
 
    return -1;
-#elif defined(sun) || defined(__FreeBSD__)
+#elif defined(sun) || defined(__FreeBSD__) || defined(__HAIKU__)
    return setgid(egid);
 #else
    if (uid32) {
@@ -365,7 +367,7 @@ Id_SetREUid(uid_t uid,		// IN: new uid
 #if defined(__APPLE__)
    Warning("XXXMACOS: implement %s\n", __func__);
    return -1;
-#elif defined(sun) || defined(__FreeBSD__)
+#elif defined(sun) || defined(__FreeBSD__) || defined(__HAIKU__)
    return setreuid(uid, euid);
 #else
    if (uid32) {
@@ -406,7 +408,7 @@ int
 Id_SetREGid(gid_t gid,		// IN: new gid
 	    gid_t egid)		// IN: new effective gid
 {
-#if defined(sun) || defined(__FreeBSD__)
+#if defined(sun) || defined(__FreeBSD__) || defined(__HAIKU__)
    return setregid(gid, egid);
 #else
    if (uid32) {

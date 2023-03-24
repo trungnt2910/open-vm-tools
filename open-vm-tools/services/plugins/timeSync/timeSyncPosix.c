@@ -77,9 +77,18 @@ TimeSync_AddToCurrentTime(int64 delta)
 
    TimeSyncWriteTimeVal(newTime, &tv);
 
+#if defined(__HAIKU__)
+   struct timespec ts;
+   ts.tv_sec = tv.tv_sec;
+   ts.tv_nsec = tv.tv_usec * 1000;
+   if (clock_settime(CLOCK_REALTIME, &ts) < 0) {
+      return FALSE;
+   }
+#else
    if (settimeofday(&tv, NULL) < 0) {
       return FALSE;
    }
+#endif
 
    return TRUE;
 }

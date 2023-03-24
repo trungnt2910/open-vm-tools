@@ -70,10 +70,12 @@
 #include <sys/param.h>
 #include <sys/mount.h>
 #else
+#if !defined(__HAIKU__)
 #include <sys/statfs.h>
 #if !defined(__sun__)
 #include <mntent.h>
 #include <dlfcn.h>
+#endif
 #endif
 #endif
 #endif

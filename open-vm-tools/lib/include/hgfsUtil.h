@@ -59,7 +59,8 @@
        !defined sun && \
        !defined __FreeBSD__ && \
        !__APPLE__ && \
-       !defined _WIN32
+       !defined _WIN32 && \
+       !defined __HAIKU__
 struct timespec {
    time_t tv_sec;
    long   tv_nsec;

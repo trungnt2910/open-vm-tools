@@ -156,6 +156,18 @@ struct mntHandle {
 # define MNTINFO_FSTYPE(mnt)            mnt->f_fstypename
 # define MNTINFO_MNTPT(mnt)             mnt->f_mntonname
 # define MNTINFO_MNT_IS_RO(mnt)         ((mnt)->f_flags & MNT_RDONLY)
+#elif defined(__HAIKU__)
+# define MNTFILE                         ""
+# define MNTHANDLE                       void*
+# define MNTINFO                         void*
+# define DECLARE_MNTINFO(name)           void* name = NULL;
+# define OPEN_MNTFILE(mode)              NULL
+# define GETNEXT_MNTINFO(mntHandle, mnt) mnt
+# define MNTINFO_NAME(mnt)               (char *)(mnt)
+# define MNTINFO_FSTYPE(mnt)             (char *)(mnt)
+# define MNTINFO_MNTPT(mnt)              (char *)(mnt)
+# define MNTINFO_MNT_IS_RO(mnt)          (bool)(!(mnt))
+# define CLOSE_MNTFILE(mntHandle)        NULL
 #else
 # error "Define mount information macros for your OS type"
 #endif

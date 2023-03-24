@@ -31,7 +31,7 @@
 #endif
 
 
-#if !defined(__linux__) && !defined(__FreeBSD__) && !defined(sun) && !defined(__APPLE__)
+#if !defined(__linux__) && !defined(__FreeBSD__) && !defined(sun) && !defined(__APPLE__) && !defined(__HAIKU__)
 #   error This file should not be compiled
 #endif
 
@@ -57,9 +57,11 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
+#ifndef __HAIKU__
 #include <net/if_arp.h>         // for ARPHRD_ETHER
+#endif
 
-#if defined(__FreeBSD__) || defined(__APPLE__)
+#if defined(__FreeBSD__) || defined(__APPLE__) || defined(__HAIKU__)
 #include "ifaddrs.h"
 #endif
 
@@ -150,7 +152,7 @@ invalid:
  *----------------------------------------------------------------------
  */
 
-#if !defined(__FreeBSD__) && !defined(__APPLE__) /* { */
+#if !defined(__FreeBSD__) && !defined(__APPLE__) && !defined(__HAIKU__) /* { */
 char *
 NetUtil_GetPrimaryIP(void)
 {
@@ -192,7 +194,7 @@ NetUtil_GetPrimaryIP(void)
    return strdup(ipstr);
 }
 
-#else /* } FreeBSD || APPLE { */
+#else /* } FreeBSD || APPLE || HAIKU { */
 
 char *
 NetUtil_GetPrimaryIP(void)

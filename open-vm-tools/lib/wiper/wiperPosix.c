@@ -23,7 +23,7 @@
  *
  */
 
-#if !defined(__linux__) && !defined(sun) && !defined(__FreeBSD__) && !defined(__APPLE__)
+#if !defined(__linux__) && !defined(sun) && !defined(__FreeBSD__) && !defined(__APPLE__) && !defined(__HAIKU__)
 #error This file should not be compiled on this platform.
 #endif
 
@@ -39,6 +39,8 @@
 # include <sys/ucred.h>
 # include <sys/mount.h>
 # include <fstab.h>
+#elif defined(__HAIKU__)
+# include <sys/statvfs.h>
 #endif
 #if defined(__FreeBSD__)
 #include <libgen.h>
@@ -74,7 +76,7 @@
 
 #if defined(sun) || defined(__linux__)
 # define PROCFS "proc"
-#elif defined(__FreeBSD__) || defined(__APPLE__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__HAIKU__)
 # define PROCFS "procfs"
 #endif
 
@@ -379,6 +381,15 @@ WiperIsDiskDevice(MNTINFO *mnt,     // IN
           StrUtil_StartsWith(MNTINFO_NAME(mnt), "/dev/disk");
 }
 
+#elif defined(__HAIKU__) /* } HAIKU { */
+
+static Bool
+WiperIsDiskDevice(MNTINFO *mnt,     // IN
+                  struct stat *s)   // IN
+{
+	return FALSE;
+}
+
 #endif /* } */
 
 /*
@@ -604,7 +615,7 @@ WiperSinglePartition_GetSpace(const WiperPartition *p, // IN
                               uint64 *free,            // OUT/OPT
                               uint64 *total)           // OUT
 {
-#ifdef sun
+#if defined(sun) || defined(__HAIKU__)
    struct statvfs statfsbuf;
 #else
    struct statfs statfsbuf;
@@ -613,7 +624,7 @@ WiperSinglePartition_GetSpace(const WiperPartition *p, // IN
 
    ASSERT(p);
 
-#ifdef sun
+#if defined(sun) || defined(__HAIKU__)
    if (statvfs(p->mountPoint, &statfsbuf) < 0) {
 #else
    if (Posix_Statfs(p->mountPoint, &statfsbuf) < 0) {
@@ -621,7 +632,7 @@ WiperSinglePartition_GetSpace(const WiperPartition *p, // IN
       return "Unable to statfs() the mount point";
    }
 
-#ifdef sun
+#if defined(sun)
    blockSize = statfsbuf.f_frsize;
 #else
    blockSize = statfsbuf.f_bsize;

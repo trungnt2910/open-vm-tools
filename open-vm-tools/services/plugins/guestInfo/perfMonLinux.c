@@ -212,6 +212,7 @@ GuestInfoDeleteDiskStatsList(GuestInfoDiskStatsList *head)  // IN/OUT:
 }
 
 
+#if !defined(__HAIKU__)
 /*
  *----------------------------------------------------------------------
  *
@@ -238,6 +239,7 @@ GuestInfoIsBlockDevice(const char *name)  // IN:
 
    return (access(path, F_OK) == 0);
 }
+#endif
 
 
 /*
@@ -715,6 +717,11 @@ GuestInfoDecreaseCpuRunQueueByOne(GuestInfoCollector *collector)  // IN/OUT:
 static Bool
 GuestInfoProcDiskStatsData(GuestInfoCollector *collector)  // IN/OUT:
 {
+#if defined(__HAIKU__)
+   // On Haiku the compiler complains about scanf with "%*d".
+   // Haiku has no /proc/diskstats so this wouldn't work anyway.
+   return FALSE;
+#else
    static int curr = 0;
 
    int prev;
@@ -825,6 +832,7 @@ GuestInfoProcDiskStatsData(GuestInfoCollector *collector)  // IN/OUT:
    curr = prev;
 
    return TRUE;
+#endif
 }
 
 

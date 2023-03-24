@@ -58,7 +58,7 @@ extern char **environ;
 #elif defined(sun)
 #include <alloca.h>
 #include <sys/mnttab.h>
-#else
+#elif !defined(__HAIKU__)
 #include <sys/statfs.h>
 #include <sys/mount.h>
 #include <mntent.h>
@@ -1635,7 +1635,7 @@ Posix_Putenv(char *name)  // IN:
 }
 
 
-#if !defined(sun) // {
+#if !defined(sun) && !defined(__HAIKU__) // {
 
 /*
  *----------------------------------------------------------------------
@@ -1671,7 +1671,7 @@ Posix_Statfs(const char *pathName,      // IN:
 
    return ret;
 }
-#endif // } !defined(sun)
+#endif // } !defined(sun) && !defined(__HAIKU__)
 
 
 /*
@@ -1806,7 +1806,7 @@ Posix_Unsetenv(const char *name)  // IN:
 
 #if !defined(sun) // {
 
-#if !defined(__APPLE__) && !defined(__FreeBSD__) // {
+#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__HAIKU__) // {
 /*
  *----------------------------------------------------------------------
  *
@@ -2217,7 +2217,7 @@ Posix_Fprintf(FILE *stream,        // IN:
 }
 
 
-#endif // } !defined(__APPLE__) && !defined(__FreeBSD)
+#endif // } !defined(__APPLE__) && !defined(__FreeBSD) && !defined(__HAIKU__)
 
 
 #else  // } !defined(sun) {

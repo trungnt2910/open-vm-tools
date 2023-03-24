@@ -40,6 +40,9 @@
 #if defined(sun)
 #include <sys/systeminfo.h>
 #endif
+#if defined(__HAIKU__)
+#include <OS.h>
+#endif
 #include <sys/socket.h>
 #if defined(__FreeBSD__) || defined(__APPLE__)
 # include <sys/sysctl.h>
@@ -93,6 +96,12 @@
 
 #ifdef __linux__
 #include <dlfcn.h>
+#endif
+
+#ifdef __HAIKU__
+#include <FindDirectory.h>
+#include <OS.h>
+#include <private/shared/cpu_type.h>
 #endif
 
 #if !defined(_PATH_DEVNULL)
@@ -2408,6 +2417,17 @@ Hostinfo_NumCPUs(void)
 #endif
 
    return out;
+#elif defined(__HAIKU__)
+   static int count = 0;
+
+   if (count <= 0) {
+      system_info info;
+
+      get_system_info(&info);
+      count = info.cpu_count;
+   }
+
+   return count;
 #else
    static int count = 0;
 
@@ -3370,7 +3390,7 @@ Hostinfo_Daemonize(const char *path,             // IN: NUL-terminated UTF-8
 }
 
 
-#if !defined(__APPLE__) && !defined(__FreeBSD__)
+#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__HAIKU__)
 /*
  *----------------------------------------------------------------------
  *
@@ -3483,6 +3503,13 @@ Hostinfo_GetRatedCpuMhz(int32 cpuNumber,  // IN:
 #  else
    return FALSE;
 #  endif
+#elif defined(__HAIKU__)
+   cpu_info info;
+   if (get_cpu_info(cpuNumber, 1, &info) != B_OK) {
+      return FALSE;
+   }
+   *mHz = info.current_frequency / 1000;
+   return TRUE;
 #else
 #if defined(VMX86_SERVER)
    if (HostType_OSIsVMK()) {
@@ -3590,6 +3617,56 @@ Hostinfo_GetCpuDescription(uint32 cpuNumber)  // IN:
    return HostinfoGetSysctlStringAlloc("machdep.cpu.brand_string");
 #elif defined(__FreeBSD__)
    return HostinfoGetSysctlStringAlloc("hw.model");
+#elif defined(__HAIKU__)
+   system_info info;
+   get_system_info(&info);
+
+   uint32 topologyNodeCount = 0;
+   cpu_topology_node_info* topology = NULL;
+   get_cpu_topology_info(NULL, &topologyNodeCount);
+   if (topologyNodeCount != 0)
+      topology = malloc(sizeof(cpu_topology_node_info) * topologyNodeCount);
+   get_cpu_topology_info(topology, &topologyNodeCount);
+
+   enum cpu_platform platform = B_CPU_UNKNOWN;
+   enum cpu_vendor cpuVendor = B_CPU_VENDOR_UNKNOWN;
+   uint32 cpuModel = 0;
+   for (uint32 i = 0; i < topologyNodeCount; i++) {
+      switch (topology[i].type) {
+         case B_TOPOLOGY_ROOT:
+            platform = topology[i].data.root.platform;
+            break;
+
+         case B_TOPOLOGY_PACKAGE:
+            cpuVendor = topology[i].data.package.vendor;
+            break;
+
+         case B_TOPOLOGY_CORE:
+            cpuModel = topology[i].data.core.model;
+            break;
+
+         default:
+            break;
+      }
+   }
+   free(topology);
+
+   const char *vendor = get_cpu_vendor_string(cpuVendor);
+   const char *model = get_cpu_model_string(platform, cpuVendor, cpuModel);
+
+   char modelString[32];
+
+   if (model == NULL && vendor == NULL)
+      model = "(Unknown)";
+   else if (model == NULL) {
+      model = modelString;
+      snprintf(modelString, 32, "(Unknown %" B_PRIx32 ")", cpuModel);
+   }
+
+   size_t len = strlen(vendor) + strlen(model) + 2;
+   char *desc = (char *)malloc(len);
+   snprintf(desc, len, "%s%s%s", vendor ? vendor : "", vendor ? " " : "", model);
+   return desc;
 #elif defined VMX86_SERVER
    /* VMKernel treats mName as an in/out parameter so terminate it. */
    char mName[64] = { 0 };
@@ -3859,6 +3936,8 @@ Hostinfo_SystemUpTime(void)
 {
 #if defined(__APPLE__)
    return Hostinfo_SystemTimerUS();
+#elif defined(__HAIKU__)
+   return system_time();
 #elif defined(__linux__)
    int res;
    double uptime;
@@ -3953,7 +4032,7 @@ NOT_IMPLEMENTED();
 }
 
 
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) && !defined(__HAIKU__)
 /*
  *----------------------------------------------------------------------
  *
@@ -4313,6 +4392,18 @@ Hostinfo_GetMemoryInfoInPages(unsigned int *minSize,      // OUT:
 
    *maxSize = memsize / PAGE_SIZE;
    return TRUE;
+#elif defined(__HAIKU__)
+   system_info info;
+   status_t status = get_system_info(&info);
+   if (status == B_OK)
+   {
+      *minSize = info.needed_memory / B_PAGE_SIZE;
+      *currentSize = info.max_pages - info.free_memory / B_PAGE_SIZE;
+      *maxSize = info.max_pages;
+      return TRUE;
+   }
+
+   return FALSE;
 #elif defined(VMX86_SERVER)
    uint64 total;
    uint64 free;
@@ -4367,6 +4458,8 @@ Hostinfo_GetModulePath(uint32 priv)  // IN:
 
 #if defined(__APPLE__)
    uint32_t pathSize = FILE_MAXPATH;
+#elif defined(__HAIKU__)
+   uint32_t pathSize = PATH_MAX;
 #else
    uid_t uid = -1;
 #endif
@@ -4381,6 +4474,16 @@ Hostinfo_GetModulePath(uint32 priv)  // IN:
    path = Util_SafeMalloc(pathSize);
    if (_NSGetExecutablePath(path, &pathSize)) {
       Warning(LGPFX" %s: _NSGetExecutablePath failed.\n", __FUNCTION__);
+      free(path);
+
+      return NULL;
+   }
+
+#elif defined(__HAIKU__)
+   path = Util_SafeMalloc(pathSize);
+   if (find_path(B_APP_IMAGE_SYMBOL, B_FIND_PATH_IMAGE_PATH, NULL, path,
+                 pathSize) != B_OK) {
+      Warning(LGPFX" %s: find_path failed.\n", __FUNCTION__);
       free(path);
 
       return NULL;

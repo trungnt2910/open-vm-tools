@@ -27,7 +27,9 @@
 #include "module.h"
 #include "cache.h"
 
+#ifndef __HAIKU__
 typedef unsigned short umode_t;
+#endif
 
 
 static int

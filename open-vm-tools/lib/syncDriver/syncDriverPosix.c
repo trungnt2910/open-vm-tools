@@ -24,7 +24,9 @@
 
 #include <stdio.h>
 #include <sys/param.h>
+#ifndef __HAIKU__
 #include <sys/mount.h>
+#endif
 #include <glib.h>
 #include "vmware.h"
 #include "debug.h"
@@ -41,6 +43,7 @@ static SyncFreezeFn gBackends[] = {
 #endif
 };
 
+#ifndef __HAIKU__
 static const char *gRemoteFSTypes[] = {
    "autofs",
    "cifs",
@@ -61,6 +64,7 @@ static RemoteDevPrefix gRemoteDevPrefixes[] = {
    DEF_DEV_PREFIX("https://"),
    DEF_DEV_PREFIX("http://")
 };
+#endif
 
 #undef DEF_DEV_PREFIX
 
@@ -88,6 +92,7 @@ static GPtrArray *gExcludedPathPatterns = NULL;
  *-----------------------------------------------------------------------------
  */
 
+#ifndef __HAIKU__
 static Bool
 SyncDriverIsRemoteFS(const MNTINFO *mntinfo)
 {
@@ -109,6 +114,7 @@ SyncDriverIsRemoteFS(const MNTINFO *mntinfo)
 
    return FALSE;
 }
+#endif
 
 
 /*
@@ -163,11 +169,13 @@ SyncDriverLocalMounts(void)
        * Skip remote mounts because they are not freezable and opening them
        * could lead to hangs. See PR 1196785.
        */
+#ifndef __HAIKU__
       if (SyncDriverIsRemoteFS(mntinfo)) {
          Debug(LGPFX "Skipping remote file system, name=%s, mntpt=%s.\n",
                device, path);
          continue;
       }
+#endif
 
       /*
        * Avoid adding a path to the list, if we have already got

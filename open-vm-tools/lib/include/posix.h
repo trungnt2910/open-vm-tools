@@ -31,6 +31,14 @@
 #include <netdb.h>
 #endif
 
+#ifdef __HAIKU__
+extern
+#if defined(__cplusplus)
+"C"
+#endif
+struct hostent *gethostbyname_r(const char *, struct hostent *, char *, int, int *);
+#endif
+
 #include "vm_basic_types.h"
 #include "unicodeTypes.h"
 #include "unicodeBase.h"
@@ -246,7 +254,7 @@ Posix_GetHostByName(const char *name)  // IN
    ASSERT(name);
 
    if ((gethostbyname_r(name, &he, buffer, sizeof buffer,
-#if !defined(sun) && !defined(SOLARIS) && !defined(SOL10)
+#if !defined(sun) && !defined(SOLARIS) && !defined(SOL10) && !defined(__HAIKU__)
                         &phe,
 #endif
                         &error) == 0) && phe) {

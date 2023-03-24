@@ -466,6 +466,48 @@ ObtainHardwareID(uint64 *hardwareID)  // OUT:
 
    return 0;
 }
+#elif defined(__HAIKU__)
+#include <unistd.h>
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ObtainHardwareID --
+ *
+ *      Locate the hardwareID for this machine.
+ *
+ * Results:
+ *      0       No errors occured
+ *      >0      failure (errno)
+ *
+ * Side effects:
+ *      None.
+ *
+ * Note:
+ *      Haiku does not have gethostid, so a hash of gethostname() is used.
+ *      This hack might not work well as all Haiku machines have "shredder"
+ *      as their host name by default.
+ *----------------------------------------------------------------------
+ */
+
+static int
+ObtainHardwareID(uint64 *hardwareID)  // OUT:
+{
+   char hostName[HOST_NAME_MAX];
+   char *p = hostName;
+
+   if (gethostname(hostName, HOST_NAME_MAX) == -1) {
+      return -1;
+   }
+
+   *hardwareID = 0;
+
+   while (*p) {
+      (*hardwareID) = *p++ + (*hardwareID << 6) + (*hardwareID << 16) - *hardwareID;
+   }
+
+   return 0;
+}
 #else				// Not a specifically code OS
 #include <unistd.h>
 
@@ -532,7 +574,7 @@ HostNameHash(unsigned char *str) // IN:
    return hash;
 }
 
- 
+
 /*
  *----------------------------------------------------------------------
  *
@@ -594,7 +636,7 @@ Hostinfo_MachineID(uint32 *hostNameHash,    // OUT:
          free(hostName);
       }
 
-      if (Atomic_ReadIfEqualWritePtr(&cachedHostNameHash, NULL, 
+      if (Atomic_ReadIfEqualWritePtr(&cachedHostNameHash, NULL,
                                      tmpNameHash)) {
          free(tmpNameHash);
          tmpNameHash = Atomic_ReadPtr(&cachedHostNameHash);
@@ -617,7 +659,7 @@ Hostinfo_MachineID(uint32 *hostNameHash,    // OUT:
          *tmpHardwareID = 0;
       }
 
-      if (Atomic_ReadIfEqualWritePtr(&cachedHardwareID, NULL, 
+      if (Atomic_ReadIfEqualWritePtr(&cachedHardwareID, NULL,
                                      tmpHardwareID)) {
          free(tmpHardwareID);
          tmpHardwareID = Atomic_ReadPtr(&cachedHardwareID);

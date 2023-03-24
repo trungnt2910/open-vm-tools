@@ -27,7 +27,7 @@
 // pull in setresuid()/setresgid() if possible
 #define  _GNU_SOURCE
 #include <unistd.h>
-#if !defined(__FreeBSD__) && !defined(sun) && !defined(__APPLE__)
+#if !defined(__FreeBSD__) && !defined(sun) && !defined(__APPLE__) && !defined(__HAIKU__)
 #include <asm/param.h>
 #endif
 #if !defined(sun) && !defined(__APPLE__)
@@ -46,7 +46,9 @@
 #include <pwd.h>
 #include <time.h>
 #include <grp.h>
+#if !defined(__HAIKU__)
 #include <sys/syscall.h>
+#endif
 #if defined(__linux__) || defined(__FreeBSD__) || defined(HAVE_SYS_USER_H)
 // sys/param.h is required on FreeBSD before sys/user.h
 #   include <sys/param.h>
@@ -63,6 +65,10 @@
 #include <sys/sysctl.h>
 #include <sys/user.h>
 #include "posix.h"
+#endif
+#if defined(__HAIKU__)
+#include <ctype.h>
+#include <OS.h>
 #endif
 #include "vmware.h"
 #include "procMgr.h"
@@ -1228,6 +1234,118 @@ quit:
 }
 #endif // defined(__APPLE__)
 
+#if defined(__HAIKU__)
+/*
+ *----------------------------------------------------------------------
+ *
+ * ProcMgr_ListProcesses --
+ *
+ *      List all the processes that the calling client has privilege to
+ *      enumerate. The strings in the returned structure should be all
+ *      UTF-8 encoded, although we do not enforce it right now.
+ *
+ * Results:
+ *
+ *      A ProcMgrProcInfoArray.
+ *
+ * Side effects:
+ *
+ *----------------------------------------------------------------------
+ */
+
+ProcMgrProcInfoArray *
+ProcMgr_ListProcesses(void)
+{
+   ProcMgrProcInfoArray *procList = NULL;
+   ProcMgrProcInfo procInfo;
+   Bool failed = TRUE;
+
+   procList = Util_SafeCalloc(1, sizeof *procList);
+   ProcMgrProcInfoArray_Init(procList, 0);
+   procInfo.procCmdName = NULL;
+   procInfo.procCmdLine = NULL;
+   procInfo.procOwner = NULL;
+
+   /*
+    * Iterate through the list of process entries
+    */
+   int32 cookie = 0;
+   team_info teamInfo;
+
+   while (get_next_team_info(&cookie, &teamInfo) == B_OK) {
+      struct passwd *pwd;
+      struct timespec proctime, realtime;
+      int i = 0;
+      char old;
+      size_t strLen = 0;
+
+      /*
+       * Store the pid of the process
+       */
+      procInfo.procId = teamInfo.team;
+
+      /*
+       * Store the owner of the process.
+       */
+      pwd = getpwuid(teamInfo.uid);
+      procInfo.procOwner = (NULL == pwd)
+                           ? Str_SafeAsprintf(&strLen, "%d", (int) teamInfo.uid)
+                           : Unicode_Alloc(pwd->pw_name, STRING_ENCODING_DEFAULT);
+
+      /*
+       * Store the command name of the process.
+       */
+      while (teamInfo.args[i] != '\0' && !isspace(teamInfo.args[i]) && i + 1 < sizeof(teamInfo.args)) {
+         ++i;
+      }
+      old = teamInfo.args[i];
+      teamInfo.args[i] = '\0';
+      procInfo.procCmdName = Unicode_Alloc(teamInfo.args, STRING_ENCODING_DEFAULT);
+      teamInfo.args[i] = old;
+
+      /*
+       * Store the command line arguments of the process.
+       * If no arguments are found, use the full command name.
+       */
+      procInfo.procCmdLine = Unicode_Alloc(teamInfo.args, STRING_ENCODING_DEFAULT);
+
+      /*
+       * Store the start time of the process
+       */
+      clock_gettime(CLOCK_REALTIME, &realtime);
+      clock_gettime(teamInfo.team, &proctime);
+      procInfo.procStartTime = realtime.tv_sec - proctime.tv_sec;
+
+      if (!ProcMgrProcInfoArray_Push(procList, procInfo)) {
+         Warning("%s: failed to expand DynArray - out of memory\n",
+                 __FUNCTION__);
+         goto quit;
+      }
+
+      procInfo.procCmdName = NULL;
+      procInfo.procCmdLine = NULL;
+      procInfo.procOwner = NULL;
+   }
+
+   if (0 < ProcMgrProcInfoArray_Count(procList)) {
+      failed = FALSE;
+   }
+
+quit:
+
+   free(procInfo.procCmdName);
+   free(procInfo.procCmdLine);
+   free(procInfo.procOwner);
+
+   if (failed) {
+      ProcMgr_FreeProcList(procList);
+      procList = NULL;
+   }
+
+   return procList;
+}
+#endif // defined(__HAIKU__)
+
 /*
  *----------------------------------------------------------------------
  *
@@ -2228,7 +2346,7 @@ ProcMgr_Free(ProcMgr_AsyncProc *asyncProc) // IN
    free(asyncProc);
 }
 
-#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__) || defined(__HAIKU__)
 
 /*
  *----------------------------------------------------------------------
@@ -2308,7 +2426,7 @@ ProcMgr_ImpersonateUserStart(const char *user,  // IN: UTF-8 encoded user name
    // first change group
 #if defined(USERWORLD)
    ret = Id_SetREGid(ppw->pw_gid, ppw->pw_gid);
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) || defined(__HAIKU__)
    ret = setegid(ppw->pw_gid);
 #else
    ret = setresgid(ppw->pw_gid, ppw->pw_gid, root_gid);
@@ -2329,7 +2447,7 @@ ProcMgr_ImpersonateUserStart(const char *user,  // IN: UTF-8 encoded user name
    // now user
 #if defined(USERWORLD)
    ret = Id_SetREUid(ppw->pw_uid, ppw->pw_uid);
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) || defined(__HAIKU__)
    ret = seteuid(ppw->pw_uid);
 #else
    ret = setresuid(ppw->pw_uid, ppw->pw_uid, 0);
@@ -2391,7 +2509,7 @@ ProcMgr_ImpersonateUserStop(void)
    // first change back user
 #if defined(USERWORLD)
    ret = Id_SetREUid(ppw->pw_uid, ppw->pw_uid);
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) || defined(__HAIKU__)
    ret = seteuid(ppw->pw_uid);
 #else
    ret = setresuid(ppw->pw_uid, ppw->pw_uid, 0);
@@ -2404,7 +2522,7 @@ ProcMgr_ImpersonateUserStop(void)
    // now group
 #if defined(USERWORLD)
    ret = Id_SetREGid(ppw->pw_gid, ppw->pw_gid);
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) || defined(__HAIKU__)
    ret = setegid(ppw->pw_gid);
 #else
    ret = setresgid(ppw->pw_gid, ppw->pw_gid, ppw->pw_gid);
@@ -2519,4 +2637,4 @@ ProcMgr_GetImpersonatedUserInfo(char **userName,            // OUT
    return TRUE;
 }
 
-#endif // linux || __FreeBSD__ || __APPLE__
+#endif // linux || __FreeBSD__ || __APPLE__ || __HAIKU__

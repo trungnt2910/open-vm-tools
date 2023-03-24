@@ -39,7 +39,9 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/time.h>  // for utimes(2)
+#if !defined(__HAIKU__)
 #include <sys/syscall.h>
+#endif
 #include <fcntl.h>
 #include <sys/types.h>
 #include <dirent.h>
@@ -92,6 +94,16 @@ typedef struct DirectoryEntry {
    uint16 d_reclen;
    uint8  d_type;
    char   d_name[256];
+} DirectoryEntry;
+#elif defined __HAIKU__
+#include <dirent.h>
+typedef struct DirectoryEntry {
+   int32  d_dev;       /* device */
+   int32  d_pdev;      /* parent device (only for queries) */
+   int64  d_ino;       /* inode number */
+   int64  d_pino;      /* parent inode (only for queries) */
+   uint16 d_reclen;    /* length of this record, not the name */
+   char   d_name[256]; /* name of the entry (null byte terminated) */
 } DirectoryEntry;
 #else
 #include <dirent.h>
@@ -266,6 +278,23 @@ futimes(int fd, const struct timeval times[2])
 }
 #undef PROC_SELF_FD
 #undef STRLEN_OF_MAXINT_AS_STRING
+#elif defined(__HAIKU__)
+int
+futimes(int fd, const struct timeval times[2])
+{
+   if (times == NULL) {
+      return futimens(fd, NULL);
+   }
+
+   struct timespec ts[2];
+
+   ts[0].tv_sec = times[0].tv_sec;
+   ts[0].tv_nsec = times[0].tv_usec * 1000;
+   ts[1].tv_sec = times[1].tv_sec;
+   ts[1].tv_nsec = times[1].tv_usec * 1000;
+
+   return futimens(fd, ts);
+}
 #endif
 
 #if defined(__APPLE__)
@@ -3828,9 +3857,18 @@ HgfsPlatformScandir(char const *baseDir,            // IN: Directory to search i
     * Rather than read a single dent at a time, batch up multiple dents
     * in each call by using a buffer substantially larger than one dent.
     */
+#if !defined(__HAIKU__)
    while ((result = getdents(fd, (void *)buffer, sizeof buffer)) > 0) {
       size_t offset = 0;
       while (offset < result) {
+#else
+   DIR* dir = fdopendir(fd);
+   DirectoryEntry* haikuDent;
+   while ((haikuDent = (DirectoryEntry *)readdir(dir))) {
+      memcpy(buffer, haikuDent, sizeof(*haikuDent));
+      size_t offset = 0;
+      while (offset < 1) {
+#endif
          DirectoryEntry *newDent, **newDents;
 
          newDent = (DirectoryEntry *)(buffer + offset);

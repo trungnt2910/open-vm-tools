@@ -52,7 +52,9 @@ if HAVE_FUSE
    SUBDIRS += vmhgfs-fuse
 endif
 if !LINUX
+if !HAIKU
    SUBDIRS += vmblockmounter
+endif
 endif
 SUBDIRS += xferlogs
 if ENABLE_TESTS

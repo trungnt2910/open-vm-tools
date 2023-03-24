@@ -71,6 +71,10 @@
 #include <mach-o/dyld.h>
 #endif
 
+#if defined(__HAIKU__)
+#include <FindDirectory.h>
+#endif
+
 #include <stdio.h>
 #include "vmware.h"
 #include "vm_product.h"
@@ -265,6 +269,12 @@ CodeSetGetModulePath(uint32 priv)
       goto exit;
    }
 
+#elif defined(__HAIKU__)
+   if (find_path(B_APP_IMAGE_SYMBOL, B_FIND_PATH_IMAGE_PATH, NULL, path,
+                 sizeof path) != B_OK) {
+      goto exit;
+   }
+   size = strlen(path);
 #else
 #if defined(VMX86_SERVER)
    if (HostType_OSIsVMK()) {

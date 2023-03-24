@@ -662,7 +662,7 @@ CodeSetOldGetCodeSetFromLocale(void)
    codeset = Util_SafeStrdup(nl_langinfo_l(CODESET, new));
    freelocale(new);
 
-#elif defined(sun)
+#elif defined(sun) || defined(__HAIKU__)
 
    char *locale = setlocale(LC_CTYPE, NULL);
 
@@ -928,7 +928,7 @@ CodeSetOld_GenericToGenericDb(char const *codeIn,   // IN:
        * change bufIn so a simple cast is safe. --plangdale
        */
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__HAIKU__)
       status = iconv(cd, (char **)&bufIn, &sizeIn, &out, &outLeft);
 #else
       status = iconv(cd, &bufIn, &sizeIn, &out, &outLeft);

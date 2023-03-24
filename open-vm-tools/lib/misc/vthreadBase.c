@@ -61,6 +61,9 @@
       */
 #    define _XOPEN_SOURCE 500
 #  endif
+#  if defined __HAIKU__
+#    include <OS.h>
+#  endif
 #  if defined __linux__
 #    include <sys/syscall.h>   // for gettid(2)
 #  endif
@@ -352,6 +355,8 @@ VThreadBase_GetKernelID(void)
 #  endif
    // Best effort until FreeBSD header update
    return (uint64)(uintptr_t)(void *)pthread_self();
+#elif defined __HAIKU__
+   return find_thread(NULL);
 #else
 #  error "Unknown platform"
 #endif

@@ -40,6 +40,10 @@ if FREEBSD
 libtimeSync_la_SOURCES += slewAdjtime.c
 libtimeSync_la_SOURCES += pllNone.c
 endif
+if HAIKU
+libtimeSync_la_SOURCES += slewNone.c
+libtimeSync_la_SOURCES += pllNone.c
+endif
 if LINUX
 libtimeSync_la_SOURCES += slewLinux.c
 libtimeSync_la_SOURCES += pllLinux.c

@@ -72,7 +72,9 @@ extern "C" {
 #endif
 
 #include <signal.h>
+#ifndef __HAIKU__
 #include <sys/ucontext.h>
+#endif
 
 #if __linux__ && !defined __ANDROID__
 #  if defined(__x86_64__)
@@ -243,6 +245,36 @@ extern "C" {
 #define SC_EBP(uc) ((unsigned long) (uc)->uc_mcontext.gregs[REG_EBP])
 #define SC_ESP(uc) ((unsigned long) (uc)->uc_mcontext.gregs[REG_ESP])
 #define SC_EIP(uc) ((unsigned long) (uc)->uc_mcontext.gregs[REG_EIP])
+#elif defined(__HAIKU__)
+#ifdef __x86_64__
+#define SC_EAX(uc) ((unsigned long) (uc)->uc_mcontext.rax)
+#define SC_EBX(uc) ((unsigned long) (uc)->uc_mcontext.rbx)
+#define SC_ECX(uc) ((unsigned long) (uc)->uc_mcontext.rcx)
+#define SC_EDX(uc) ((unsigned long) (uc)->uc_mcontext.rdx)
+#define SC_EDI(uc) ((unsigned long) (uc)->uc_mcontext.rdi)
+#define SC_ESI(uc) ((unsigned long) (uc)->uc_mcontext.rsi)
+#define SC_EBP(uc) ((unsigned long) (uc)->uc_mcontext.rbp)
+#define SC_ESP(uc) ((unsigned long) (uc)->uc_mcontext.rsp)
+#define SC_EIP(uc) ((unsigned long) (uc)->uc_mcontext.rip)
+#define SC_R8(uc)  ((unsigned long) (uc)->uc_mcontext.r8)
+#define SC_R9(uc)  ((unsigned long) (uc)->uc_mcontext.r9)
+#define SC_R10(uc) ((unsigned long) (uc)->uc_mcontext.r10)
+#define SC_R11(uc) ((unsigned long) (uc)->uc_mcontext.r11)
+#define SC_R12(uc) ((unsigned long) (uc)->uc_mcontext.r12)
+#define SC_R13(uc) ((unsigned long) (uc)->uc_mcontext.r13)
+#define SC_R14(uc) ((unsigned long) (uc)->uc_mcontext.r14)
+#define SC_R15(uc) ((unsigned long) (uc)->uc_mcontext.r15)
+#elif defined(__i386__)
+#define SC_EAX(uc) ((unsigned long) (uc)->uc_mcontext.eax)
+#define SC_EBX(uc) ((unsigned long) (uc)->uc_mcontext.ebx)
+#define SC_ECX(uc) ((unsigned long) (uc)->uc_mcontext.ecx)
+#define SC_EDX(uc) ((unsigned long) (uc)->uc_mcontext.edx)
+#define SC_EDI(uc) ((unsigned long) (uc)->uc_mcontext.edi)
+#define SC_ESI(uc) ((unsigned long) (uc)->uc_mcontext.esi)
+#define SC_EBP(uc) ((unsigned long) (uc)->uc_mcontext.ebp)
+#define SC_ESP(uc) ((unsigned long) (uc)->uc_mcontext.esp)
+#define SC_EIP(uc) ((unsigned long) (uc)->uc_mcontext.eip)
+#endif
 #else
 #ifdef __x86_64__
 #define SC_EAX(uc) ((unsigned long) (uc)->uc_mcontext.gregs[GNU_REG_RAX])

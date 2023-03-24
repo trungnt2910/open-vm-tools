@@ -28,7 +28,7 @@
 # include <sys/param.h>
 # include <sys/mount.h>
 #else
-# if !defined(__APPLE__)
+# if !defined(__APPLE__) && !defined(__HAIKU__)
 #  include <sys/vfs.h>
 # endif
 # include <limits.h>
@@ -37,7 +37,7 @@
 #  include <sys/mnttab.h>
 # elif __APPLE__
 #  include <sys/mount.h>
-# else
+# elif !defined(__HAIKU__)
 #  include <mntent.h>
 # endif
 #include <signal.h>
@@ -81,7 +81,7 @@
 
 #include "unicodeOperations.h"
 
-#if !defined(__FreeBSD__) && !defined(sun)
+#if !defined(__FreeBSD__) && !defined(sun) && !defined(__HAIKU__)
 #if !defined(__APPLE__)
 static char *FilePosixLookupMountPoint(char const *canPath, Bool *bind);
 #endif
@@ -370,7 +370,7 @@ FileAttributes(const char *pathName,  // IN:
  *----------------------------------------------------------------------
  */
 
-#if !defined(__FreeBSD__) && !defined(sun)
+#if !defined(__FreeBSD__) && !defined(sun) && !defined(__HAIKU__)
 Bool
 File_IsRemote(const char *pathName)  // IN: Path name
 {
@@ -409,7 +409,7 @@ File_IsRemote(const char *pathName)  // IN: Path name
 #endif
    }
 }
-#endif /* !FreeBSD && !sun */
+#endif /* !FreeBSD && !sun && !HAIKU */
 
 
 /*
@@ -626,7 +626,7 @@ File_FullPath(const char *pathName)  // IN:
       if (ret == NULL) {
          char *dir;
          char *file;
-#if defined(__FreeBSD__) || defined(sun)
+#if defined(__FreeBSD__) || defined(sun) || defined(__HAIKU__)
          char *realDir;
 #else
          char *ancestorPath;
@@ -634,7 +634,7 @@ File_FullPath(const char *pathName)  // IN:
 #endif
 
          File_GetPathName(path, &dir, &file);
-#if defined(__FreeBSD__) || defined(sun)
+#if defined(__FreeBSD__) || defined(sun) || defined(__HAIKU__)
          realDir = Posix_RealPath(dir);
          if (realDir == NULL) {
             realDir = File_StripFwdSlashes(dir);
@@ -965,7 +965,7 @@ File_SetFilePermissions(const char *pathName,  // IN:
 }
 
 
-#if !defined(__FreeBSD__) && !defined(sun)
+#if !defined(__FreeBSD__) && !defined(sun) && !defined(__HAIKU__)
 /*
  *-----------------------------------------------------------------------------
  *
@@ -2093,7 +2093,7 @@ FilePosixNearestExistingAncestor(char const *path)  // IN: File path
 }
 
 
-#endif /* !FreeBSD && !sun */
+#endif /* !FreeBSD && !sun && !HAIKU */
 
 
 /*
@@ -2128,7 +2128,7 @@ File_IsSameFile(const char *path1,  // IN:
 {
    struct stat st1;
    struct stat st2;
-#if !defined(sun)  // Solaris does not have statfs
+#if !defined(sun) && !defined(__HAIKU__)  // Solaris and Haiku do not have statfs
    struct statfs stfs1;
    struct statfs stfs2;
 #endif
@@ -2171,7 +2171,7 @@ File_IsSameFile(const char *path1,  // IN:
       return TRUE;
    }
 
-#if !defined(sun)  // Solaris does not have statfs
+#if !defined(sun) && !defined(__HAIKU__)  // Solaris and Haiku do not have statfs
    if (Posix_Statfs(path1, &stfs1) != 0) {
       return FALSE;
    }

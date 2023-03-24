@@ -37,6 +37,8 @@
 #include <limits.h>
 #if defined(__FreeBSD__) || defined(__APPLE__)
 # include <sys/sysctl.h>
+#endif
+#if defined(__FreeBSD__) || defined(__APPLE__) || defined(__HAIKU__)
 # include <ifaddrs.h>
 # include <net/if.h>
 #endif
@@ -144,7 +146,7 @@ static Bool RecordRoutingInfo(unsigned int maxIPv4Routes,
                               unsigned int maxIPv6Routes,
                               NicInfoV3 *nicInfo);
 
-#if !defined(__FreeBSD__) && !defined(__APPLE__) && !defined(USERWORLD)
+#if !defined(__FreeBSD__) && !defined(__APPLE__) && !defined(__HAIKU__) && !defined(USERWORLD)
 typedef struct GuestInfoIpPriority {
    char *ipstr;
    NicInfoPriority priority;
@@ -155,9 +157,11 @@ static int GuestInfoGetIntf(const struct intf_entry *entry, void *arg);
 
 #endif
 
+#ifndef __HAIKU__
 static Bool RecordRoutingInfo(unsigned int maxIPv4Routes,
                               unsigned int maxIPv6Routes,
                               NicInfoV3 *nicInfo);
+#endif
 
 static char *ValidateConvertAddress(const struct sockaddr *addr);
 
@@ -501,6 +505,7 @@ GuestInfoGetNicInfo(unsigned int maxIPv4Routes,
  */
 #if defined(__FreeBSD__) || \
     defined(__APPLE__) || \
+    defined(__HAIKU__) || \
     defined(USERWORLD) || \
     (defined(__linux__) && defined(NO_DNET))
 
@@ -1535,6 +1540,7 @@ RecordRoutingInfoIPv6(unsigned int maxRoutes,
  ******************************************************************************
  */
 
+#ifndef __HAIKU__
 static Bool
 RecordRoutingInfo(unsigned int maxIPv4Routes,
                   unsigned int maxIPv6Routes,
@@ -1580,10 +1586,11 @@ RecordRoutingInfo(unsigned int maxIPv4Routes,
    return TRUE;
 }
 #endif                                          // else
+#endif
 
 #ifndef NO_DNET
 
-#if !defined(__FreeBSD__) && !defined(__APPLE__) && !defined(USERWORLD)
+#if !defined(__FreeBSD__) && !defined(__APPLE__) && !defined(__HAIKU__) && !defined(USERWORLD)
 /*
  ******************************************************************************
  * GuestInfoGetIntf --                                                   */ /**

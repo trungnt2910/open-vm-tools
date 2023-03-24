@@ -129,6 +129,9 @@ case "$host_os" in
    [solaris*])
       os="solaris"
       ;;
+   [haiku*])
+      os="haiku"
+      ;;
    [*])
       AC_MSG_WARN([This is an untested and unsupported Operating System. Proceed at your own peril.])
       ;;
@@ -1156,12 +1159,14 @@ else
    fi
 fi # End of checks for X libraries
 
-AC_CHECK_LIB(
-   [crypt],
-   [crypt],
-   [HAVE_CRYPT="yes"],
-   [AC_MSG_ERROR(
-      [libcrypt not found. Please install the libc/libcrypt devel package(s).])])
+if test "$os" != "haiku"; then
+   AC_CHECK_LIB(
+      [crypt],
+      [crypt],
+      [HAVE_CRYPT="yes"],
+      [AC_MSG_ERROR(
+         [libcrypt not found. Please install the libc/libcrypt devel package(s).])])
+fi
 
 AC_CHECK_FUNCS(
    dlopen,
@@ -1664,6 +1669,12 @@ if test "$os" = "solaris"; then
    fi
 fi
 
+if test "$os" = "haiku"; then
+   LIBVMTOOLS_LIBADD="$LIBVMTOOLS_LIBADD -lnetwork"
+   LIBVMTOOLS_LIBADD="$LIBVMTOOLS_LIBADD -liconv"
+   CFLAGS="$CFLAGS -D_FILE_OFFSET_BITS=64"
+fi
+
 if test "$os" = "linux"; then
     have_udev="yes"
     AC_ARG_WITH([udev-rules-dir],
@@ -1701,6 +1712,7 @@ AM_CONDITIONAL(SOLARIS, test "$os" = "solaris")
 AM_CONDITIONAL(FREEBSD, test "$os" = "freebsd" -o "$os" = "kfreebsd-gnu")
 AM_CONDITIONAL(FREEBSD_CUSTOM_SYSDIR,
                test \( "$os" = "freebsd" -o "$os" = "kfreebsd-gnu" \) -a -n "$SYSDIR")
+AM_CONDITIONAL(HAIKU, test "$os" = "haiku")
 AM_CONDITIONAL(ARCH_X32, test "$arch" = "x32")
 AM_CONDITIONAL(ARCH_X64, test "$arch" = "x64")
 AM_CONDITIONAL(ARCH_ARM64, test "$arch" = "arm64")

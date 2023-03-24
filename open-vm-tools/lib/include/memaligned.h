@@ -25,7 +25,7 @@
 #ifndef _MEMALIGNED_H_
 #define _MEMALIGNED_H_
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__HAIKU__)
 #include <malloc.h>
 #else
 #include <stdlib.h>
